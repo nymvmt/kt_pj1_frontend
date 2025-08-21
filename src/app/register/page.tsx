@@ -1,15 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { authAPI } from '@/lib/api';
+import { authAPI, managerBrandAPI } from '@/lib/api';
+import { BrandCategory } from '@/types';
 
 type UserType = 'user' | 'manager';
 
 export default function RegisterPage() {
   const router = useRouter();
   const [userType, setUserType] = useState<UserType>('user');
+  const [categories, setCategories] = useState<BrandCategory[]>([]);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -27,6 +29,31 @@ export default function RegisterPage() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // 카테고리 목록 가져오기
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        console.log('카테고리 목록 조회 시작...');
+        const response = await managerBrandAPI.getCategories();
+        console.log('카테고리 응답:', response);
+        if (response.data.success) {
+          setCategories(response.data.data);
+          console.log('카테고리 목록 설정 완료:', response.data.data);
+        } else {
+          console.error('카테고리 응답 실패:', response.data);
+        }
+      } catch (err: any) {
+        console.error('카테고리 목록 조회 실패:', err);
+        if (err.response) {
+          console.error('응답 상태:', err.response.status);
+          console.error('응답 데이터:', err.response.data);
+        }
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -64,6 +91,51 @@ export default function RegisterPage() {
       setError('카테고리를 선택해주세요.');
       return;
     }
+    
+    if (userType === 'manager' && !formData.initialCost) {
+      setError('가맹비는 필수입니다.');
+      return;
+    }
+    
+    if (userType === 'manager' && parseFloat(formData.initialCost) <= 0) {
+      setError('가맹비는 0보다 커야 합니다.');
+      return;
+    }
+    
+    if (userType === 'manager' && !formData.totalInvestment) {
+      setError('총 창업비용은 필수입니다.');
+      return;
+    }
+    
+    if (userType === 'manager' && parseFloat(formData.totalInvestment) <= 0) {
+      setError('총 창업비용은 0보다 커야 합니다.');
+      return;
+    }
+    
+    if (userType === 'manager' && !formData.avgMonthlyRevenue) {
+      setError('평균 월매출은 필수입니다.');
+      return;
+    }
+    
+    if (userType === 'manager' && parseFloat(formData.avgMonthlyRevenue) <= 0) {
+      setError('평균 월매출은 0보다 커야 합니다.');
+      return;
+    }
+    
+    if (userType === 'manager' && !formData.storeCount) {
+      setError('매장수는 필수입니다.');
+      return;
+    }
+    
+    if (userType === 'manager' && parseInt(formData.storeCount) <= 0) {
+      setError('매장수는 0보다 커야 합니다.');
+      return;
+    }
+    
+    if (userType === 'manager' && !formData.brandDescription) {
+      setError('브랜드 설명은 필수입니다.');
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -84,11 +156,11 @@ export default function RegisterPage() {
           phone: formData.phone || undefined,
           brandName: formData.brandName,
           categoryId: formData.categoryId,
-          initialCost: formData.initialCost ? parseFloat(formData.initialCost) : undefined,
-          totalInvestment: formData.totalInvestment ? parseFloat(formData.totalInvestment) : undefined,
-          avgMonthlyRevenue: formData.avgMonthlyRevenue ? parseFloat(formData.avgMonthlyRevenue) : undefined,
-          storeCount: formData.storeCount ? parseInt(formData.storeCount) : undefined,
-          brandDescription: formData.brandDescription || undefined,
+          initialCost: parseFloat(formData.initialCost),
+          totalInvestment: parseFloat(formData.totalInvestment),
+          avgMonthlyRevenue: parseFloat(formData.avgMonthlyRevenue),
+          storeCount: parseInt(formData.storeCount),
+          brandDescription: formData.brandDescription,
         });
       }
       
@@ -225,26 +297,106 @@ export default function RegisterPage() {
                       className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     >
                       <option value="">카테고리를 선택하세요</option>
-                      <option value="1">외식</option>
-                      <option value="2">뷰티</option>
-                      <option value="3">교육</option>
-                      <option value="4">편의점</option>
-                      <option value="5">서비스</option>
+                      {categories.map(category => (
+                        <option key={category.categoryId} value={category.categoryId}>
+                          {category.categoryName}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </div>
 
                 <div>
                   <label htmlFor="brandDescription" className="block text-sm font-medium text-gray-700">
-                    브랜드 설명
+                    브랜드 설명 *
                   </label>
                   <div className="mt-1">
                     <textarea
                       id="brandDescription"
                       name="brandDescription"
                       rows={3}
+                      required
                       value={formData.brandDescription}
                       onChange={handleChange}
+                      className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <label htmlFor="initialCost" className="block text-sm font-medium text-gray-700">
+                    가맹비 *
+                  </label>
+                  <div className="mt-1">
+                    <input
+                      id="initialCost"
+                      name="initialCost"
+                      type="number"
+                      min="0"
+                      step="1000000"
+                      required
+                      value={formData.initialCost}
+                      onChange={handleChange}
+                      placeholder="예: 5000000"
+                      className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <label htmlFor="totalInvestment" className="block text-sm font-medium text-gray-700">
+                    총 창업비용 *
+                  </label>
+                  <div className="mt-1">
+                    <input
+                      id="totalInvestment"
+                      name="totalInvestment"
+                      type="number"
+                      min="0"
+                      step="1000000"
+                      required
+                      value={formData.totalInvestment}
+                      onChange={handleChange}
+                      placeholder="예: 10000000"
+                      className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <label htmlFor="avgMonthlyRevenue" className="block text-sm font-medium text-gray-700">
+                    평균 월매출 *
+                  </label>
+                  <div className="mt-1">
+                    <input
+                      id="avgMonthlyRevenue"
+                      name="avgMonthlyRevenue"
+                      type="number"
+                      min="0"
+                      step="1000000"
+                      required
+                      value={formData.avgMonthlyRevenue}
+                      onChange={handleChange}
+                      placeholder="예: 8000000"
+                      className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <label htmlFor="storeCount" className="block text-sm font-medium text-gray-700">
+                    매장수 *
+                  </label>
+                  <div className="mt-1">
+                    <input
+                      id="storeCount"
+                      name="storeCount"
+                      type="number"
+                      min="1"
+                      required
+                      value={formData.storeCount}
+                      onChange={handleChange}
+                      placeholder="예: 5"
                       className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     />
                   </div>

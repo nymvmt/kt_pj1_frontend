@@ -1,8 +1,10 @@
 // 공통 응답 타입
 export interface ApiResponse<T> {
   success: boolean;
+  message: string;
   data: T;
-  message?: string;
+  errorCode?: string;
+  timestamp: string;
 }
 
 export interface PageResponse<T> {
@@ -21,27 +23,43 @@ export interface PageResponse<T> {
 
 // 브랜드 관련 타입
 export interface Brand {
-  id: number;
-  name: string;
-  description: string;
-  category: BrandCategory;
-  imageUrl?: string;
-  websiteUrl?: string;
-  contactInfo?: string;
-  createdAt: string;
-  updatedAt: string;
+  brandId: number;
+  brandName: string;
+  categoryName: string;
+  category?: BrandCategory;
+  brandDescription?: string;
+  viewCount: number;
+  saveCount: number;
+  initialCost: number;
+  avgMonthlyRevenue: number;
+  storeCount?: number;
+  managerName: string;
+  isSaved: boolean;
+  isManaged?: boolean; // 매니저가 관리하는 브랜드인지 여부
 }
 
 export interface BrandCategory {
-  id: number;
-  name: string;
-  description?: string;
+  categoryId: number;
+  categoryName: string;
+  brandCount?: number;
+  // 추가 속성
+  name?: string; // categoryName과 동일한 값
 }
 
 export interface BrandDetail extends Brand {
-  stats: BrandStats;
-  savedCount: number;
-  consultationCount: number;
+  // 백엔드 응답 구조에 맞춤
+  manager?: {
+    managerId: number;
+    name: string;
+    email: string;
+    phone?: string;
+  };
+  totalInvestment?: number;
+  consultationCount?: number;
+  // 추가 속성들
+  imageUrl?: string;
+  websiteUrl?: string;
+  contactInfo?: string;
 }
 
 export interface BrandStats {
@@ -57,7 +75,6 @@ export interface User {
   name: string;
   phone?: string;
   role?: 'USER' | 'MANAGER' | 'ADMIN';
-  createdAt?: string;
 }
 
 export interface LoginRequest {
@@ -80,14 +97,14 @@ export interface ManagerCreateRequest {
   name: string;
   email: string;
   password: string;
-  phone?: string; // optional
+  phone?: string;
   brandName: string;
   categoryId: number;
-  initialCost?: number;
-  totalInvestment?: number;
-  avgMonthlyRevenue?: number;
-  storeCount?: number;
-  brandDescription?: string;
+  initialCost: number;
+  totalInvestment: number;
+  avgMonthlyRevenue: number;
+  storeCount: number;
+  brandDescription: string;
 }
 
 // 상담 관련 타입

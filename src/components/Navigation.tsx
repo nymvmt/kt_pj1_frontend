@@ -11,7 +11,11 @@ export default function Navigation() {
   const navItems = [
     { href: '/', label: '홈', icon: '🏠' },
     { href: '/brands', label: '브랜드', icon: '🏢' },
-    { href: '/saved', label: '찜한 브랜드', icon: '❤️' },
+    // 매니저일 때는 "내 브랜드 관리", 일반 사용자일 때는 "찜한 브랜드"
+    ...(user?.role === 'MANAGER' 
+      ? [{ href: '/manager', label: '내 브랜드 관리', icon: '⚙️' }]
+      : [{ href: '/saved', label: '찜한 브랜드', icon: '❤️' }]
+    ),
     { href: '/consultations', label: '상담 이력', icon: '💬' },
     { href: '/notifications', label: '알림', icon: '🔔' },
     ...(user ? [

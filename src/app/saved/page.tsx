@@ -3,20 +3,35 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { userBrandAPI } from '@/lib/api';
-import { Brand, PageResponse } from '@/types';
+import { Brand } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
+import AuthGuard from '@/components/AuthGuard';
 
 export default function SavedBrandsPage() {
+  const { user } = useAuth();
   const [savedBrands, setSavedBrands] = useState<Brand[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // 찜한 브랜드 목록 조회
   const fetchSavedBrands = async () => {
+    if (!user) {
+      setError('로그인이 필요합니다.');
+      setLoading(false);
+      return;
+    }
+    
     try {
       setLoading(true);
-      const response = await userBrandAPI.getSavedBrands(0, 100);
-      const data = response.data as PageResponse<Brand>;
-      setSavedBrands(data.content || []);
+      const response = await userBrandAPI.getSavedBrands(0, 100, user.id);
+      
+      // ApiResponse로 감싸진 응답에서 data 추출
+      if (!response.data.success) {
+        throw new Error(response.data.message || '저장된 브랜드를 불러오는데 실패했습니다.');
+      }
+      
+      const data = response.data.data as Brand[];
+      setSavedBrands(data || []);
       setError(null);
     } catch (err) {
       console.error('찜한 브랜드 조회 실패:', err);
@@ -28,21 +43,29 @@ export default function SavedBrandsPage() {
 
   // 찜 해제
   const handleUnsaveBrand = async (brandId: number) => {
+    if (!user) {
+      alert('로그인이 필요합니다.');
+      return;
+    }
+    
     try {
-      await userBrandAPI.toggleSavedBrand(brandId);
+      await userBrandAPI.toggleSavedBrand(brandId, user.id);
       // 목록에서 제거
-      setSavedBrands(prev => prev.filter(brand => brand.id !== brandId));
+      setSavedBrands(prev => prev.filter(brand => brand.brandId !== brandId));
     } catch (err: any) {
       console.error('찜 해제 실패:', err);
-      alert(err.response?.data?.message || '찜 해제에 실패했습니다.');
+      alert(err.response?.data?.message || '작업에 실패했습니다.');
     }
   };
 
   useEffect(() => {
-    fetchSavedBrands();
-  }, []);
+    if (user) {
+      fetchSavedBrands();
+    }
+  }, [user]);
 
   return (
+    <AuthGuard user={user}>
     <div className="min-h-screen bg-gray-900 pb-20">
       {/* IPTV 헤더 */}
       <div className="bg-blue-900 text-white p-4">
@@ -113,56 +136,48 @@ export default function SavedBrandsPage() {
             <div className="space-y-4">
               {savedBrands.map((brand) => (
                 <div
-                  key={brand.id}
+                  key={brand.brandId}
                   className="bg-gray-50 rounded-lg p-4 hover:shadow-md transition-shadow"
                 >
                   <div className="flex items-center space-x-4">
                     {/* 브랜드 아이콘 */}
                     <div className="w-16 h-16 bg-blue-600 rounded-lg flex items-center justify-center">
                       <span className="text-white text-2xl font-bold">
-                        {brand.name.charAt(0)}
+                        {brand.brandName.charAt(0)}
                       </span>
                     </div>
                     
                     {/* 브랜드 정보 */}
                     <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <h3 className="text-lg font-semibold text-gray-900">
-                          {brand.name}
-                        </h3>
-                        <span className="inline-block px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
-                          {brand.category.name}
-                        </span>
-                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        {brand.brandName}
+                      </h3>
                       <p className="text-sm text-gray-600 mb-2">
-                        {brand.description}
+                        카테고리: {brand.categoryName}
+                      </p>
+                      <p className="text-sm text-gray-600 mb-2">
+                        매니저: {brand.managerName}
                       </p>
                       <div className="flex items-center space-x-4 text-sm text-gray-500">
-                        <span>찜한 날짜: {new Date(brand.createdAt).toLocaleDateString()}</span>
-                        <span>👁️ {Math.floor(Math.random() * 10000) + 1000}</span>
+                        <span>조회수: {brand.viewCount}</span>
+                        <span>찜수: {brand.saveCount}</span>
                       </div>
                     </div>
                     
                     {/* 액션 버튼 */}
                     <div className="flex flex-col space-y-2">
-                      <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm flex items-center space-x-2">
-                        <span>💬</span>
-                        <span>상담신청</span>
-                      </button>
-                      <button 
-                        onClick={() => handleUnsaveBrand(brand.id)}
-                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm flex items-center space-x-2"
-                      >
-                        <span>❤️</span>
-                        <span>찜취소</span>
-                      </button>
                       <Link
-                        href={`/brands/${brand.id}`}
-                        className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 text-sm flex items-center space-x-2"
+                        href={`/brands/${brand.brandId}`}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
                       >
-                        <span>👁️</span>
-                        <span>상세보기</span>
+                        상세보기
                       </Link>
+                      <button
+                        onClick={() => handleUnsaveBrand(brand.brandId)}
+                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
+                      >
+                        찜해제
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -172,5 +187,6 @@ export default function SavedBrandsPage() {
         </div>
       </div>
     </div>
+    </AuthGuard>
   );
 }

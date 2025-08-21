@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { brandAPI } from '@/lib/api';
-import { Brand, PageResponse } from '@/types';
+import { publicBrandAPI } from '@/lib/api';
+import { Brand } from '@/types';
 
 export default function Home() {
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -15,9 +15,15 @@ export default function Home() {
   const fetchBrands = async () => {
     try {
       setLoading(true);
-      const response = await brandAPI.getPublicBrands(0, 20);
-      const data: PageResponse<Brand> = response.data;
-      setBrands(data.content);
+      const response = await publicBrandAPI.getPublicBrands(0, 1000); // 모든 브랜드 조회
+      
+      // ApiResponse로 감싸진 응답에서 data 추출
+      if (!response.data.success) {
+        throw new Error(response.data.message || '브랜드 목록을 불러오는데 실패했습니다.');
+      }
+      
+      const data: Brand[] = response.data.data;
+      setBrands(data);
       setError(null);
     } catch (err) {
       console.error('브랜드 조회 실패:', err);
@@ -121,24 +127,24 @@ export default function Home() {
                 <div className="flex items-center space-x-4">
                   <div className="w-16 h-16 bg-blue-600 rounded-lg flex items-center justify-center">
                     <span className="text-white text-2xl font-bold">
-                      {brands[currentBrandIndex]?.name?.charAt(0) || 'B'}
+                      {brands[currentBrandIndex]?.brandName?.charAt(0) || 'B'}
                     </span>
                   </div>
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold text-gray-900">
-                      {brands[currentBrandIndex]?.name || '브랜드명'}
+                      {brands[currentBrandIndex]?.brandName || '브랜드명'}
                     </h3>
                     <p className="text-sm text-gray-600 mb-2">
-                      {brands[currentBrandIndex]?.description || '브랜드 설명'}
+                      매니저: {brands[currentBrandIndex]?.managerName || '매니저'} | 카테고리: {brands[currentBrandIndex]?.categoryName || '카테고리'}
                     </p>
                     <div className="flex items-center space-x-4 text-sm text-gray-500">
-                      <span>카테고리: {brands[currentBrandIndex]?.category?.name || '카테고리'}</span>
+                                              <span>카테고리: {brands[currentBrandIndex]?.categoryName || '카테고리'}</span>
                       <span>조회수: {Math.floor(Math.random() * 10000) + 1000}</span>
                     </div>
                   </div>
                   <div className="flex flex-col space-y-2">
                     <Link
-                      href={`/brands/${brands[currentBrandIndex]?.id || 1}`}
+                                              href={`/brands/${brands[currentBrandIndex]?.brandId || 1}`}
                       className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
                     >
                       상세보기

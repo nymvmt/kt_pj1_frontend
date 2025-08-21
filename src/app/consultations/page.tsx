@@ -4,8 +4,11 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { userBrandAPI } from '@/lib/api';
 import { Consultation } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
+import AuthGuard from '@/components/AuthGuard';
 
 export default function ConsultationsPage() {
+  const { user } = useAuth();
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -91,7 +94,8 @@ export default function ConsultationsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 pb-20">
+    <AuthGuard user={user}>
+      <div className="min-h-screen bg-gray-900 pb-20">
       {/* IPTV 헤더 */}
       <div className="bg-blue-900 text-white p-4">
         <div className="flex justify-between items-center">
@@ -286,5 +290,6 @@ export default function ConsultationsPage() {
         </div>
       </div>
     </div>
+    </AuthGuard>
   );
 }

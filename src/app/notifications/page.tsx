@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
+import AuthGuard from '@/components/AuthGuard';
 
 interface Notification {
   id: number;
@@ -16,6 +18,7 @@ interface Notification {
 }
 
 export default function NotificationsPage() {
+  const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -117,7 +120,8 @@ export default function NotificationsPage() {
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
   return (
-    <div className="min-h-screen bg-gray-900 pb-20">
+    <AuthGuard user={user}>
+      <div className="min-h-screen bg-gray-900 pb-20">
       {/* IPTV 헤더 */}
       <div className="bg-blue-900 text-white p-4">
         <div className="flex justify-between items-center">
@@ -251,5 +255,6 @@ export default function NotificationsPage() {
         </div>
       </div>
     </div>
+    </AuthGuard>
   );
 }
