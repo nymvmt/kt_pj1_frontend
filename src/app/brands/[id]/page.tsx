@@ -146,10 +146,10 @@ export default function BrandDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <p className="mt-2 text-gray-600">브랜드 정보를 불러오는 중...</p>
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+          <p className="mt-2 text-gray-400">브랜드 정보를 불러오는 중...</p>
         </div>
       </div>
     );
@@ -157,9 +157,9 @@ export default function BrandDetailPage() {
 
   if (error || !brand) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
-          <p className="text-red-600 mb-4">{error || '브랜드를 찾을 수 없습니다.'}</p>
+          <p className="text-red-400 mb-4">{error || '브랜드를 찾을 수 없습니다.'}</p>
           <button
             onClick={() => window.history.back()}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -172,13 +172,13 @@ export default function BrandDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-slate-950 pb-20">
       <div className="container mx-auto px-4 py-8">
         {/* 뒤로가기 버튼 */}
         <div className="mb-4">
           <Link
             href={user?.role === 'MANAGER' ? '/manager' : '/brands'}
-            className="inline-flex items-center text-gray-600 hover:text-gray-900 font-medium"
+            className="inline-flex items-center text-gray-400 hover:text-white font-medium"
           >
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -188,9 +188,9 @@ export default function BrandDetailPage() {
         </div>
         
         {/* 브랜드 헤더 */}
-        <div className="bg-white rounded-lg shadow-md overflow-hidden mb-8">
+        <div className="bg-gray-900/60 backdrop-blur-md border border-gray-700/30 shadow-xl rounded-lg overflow-hidden mb-8">
           {brand.imageUrl && (
-            <div className="h-64 bg-gray-200">
+            <div className="h-64 bg-gray-800">
               <img
                 src={brand.imageUrl}
                 alt={brand.brandName}
@@ -202,12 +202,12 @@ export default function BrandDetailPage() {
             <div className="flex items-start justify-between mb-4">
               <div>
                 <div className="flex items-center gap-3 mb-2">
-                  <span className="inline-block px-3 py-1 text-sm font-medium bg-blue-100 text-blue-800 rounded-full">
+                  <span className="inline-block px-3 py-1 text-sm font-medium bg-blue-900/30 text-blue-200 rounded-full">
                     {brand.category?.name || brand.categoryName}
                   </span>
                 </div>
-                <h1 className="text-4xl font-bold text-gray-900 mb-2">{brand.brandName}</h1>
-                <p className="text-lg text-gray-600">{brand.brandDescription || '설명이 없습니다.'}</p>
+                <h1 className="text-4xl font-bold text-white mb-2">{brand.brandName}</h1>
+                <p className="text-lg text-gray-300">{brand.brandDescription || '설명이 없습니다.'}</p>
               </div>
               {/* 일반 사용자만 찜하기와 상담신청 버튼 표시 */}
               {user && user.role !== 'MANAGER' && (
@@ -218,10 +218,10 @@ export default function BrandDetailPage() {
                     className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                       brand.isSaved
                         ? 'bg-red-600 text-white hover:bg-red-700'
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                        : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
                     }`}
                   >
-                    {brand.isSaved ? '찜해제' : '찜하기'}
+                    {brand.isSaved ? '♥ 찜해제' : '♡ 찜하기'}
                   </button>
                   <button
                     onClick={handleOpenConsultationModal}
@@ -252,30 +252,30 @@ export default function BrandDetailPage() {
             </div>
 
             {/* 브랜드 상세 정보 */}
-            <div className="mt-6 pt-6 border-t border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">브랜드 정보</h3>
+            <div className="mt-6 pt-6 border-t border-gray-700">
+              <h3 className="text-lg font-semibold text-white mb-4">브랜드 정보</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <div className="text-sm text-gray-600 mb-1">가맹비</div>
-                  <div className="text-lg font-semibold text-blue-600">
+                <div className="bg-gray-800/60 backdrop-blur-md border border-gray-600/30 shadow-lg p-4 rounded-lg">
+                  <div className="text-sm text-gray-400 mb-1">가맹비</div>
+                  <div className="text-lg font-semibold text-blue-400">
                     {brand.initialCost ? brand.initialCost.toLocaleString() : '정보없음'}원
                   </div>
                 </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <div className="text-sm text-gray-600 mb-1">총 창업비용</div>
-                  <div className="text-lg font-semibold text-green-600">
+                <div className="bg-gray-800/60 backdrop-blur-md border border-gray-600/30 shadow-lg p-4 rounded-lg">
+                  <div className="text-sm text-gray-400 mb-1">총 창업비용</div>
+                  <div className="text-lg font-semibold text-green-400">
                     {brand.totalInvestment ? brand.totalInvestment.toLocaleString() : '정보없음'}원
                   </div>
                 </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <div className="text-sm text-gray-600 mb-1">월 평균 매출</div>
-                  <div className="text-lg font-semibold text-purple-600">
+                <div className="bg-gray-800/60 backdrop-blur-md border border-gray-600/30 shadow-lg p-4 rounded-lg">
+                  <div className="text-sm text-gray-400 mb-1">월 평균 매출</div>
+                  <div className="text-lg font-semibold text-purple-400">
                     {brand.avgMonthlyRevenue ? brand.avgMonthlyRevenue.toLocaleString() : '정보없음'}원
                   </div>
                 </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <div className="text-sm text-gray-600 mb-1">매장수</div>
-                  <div className="text-lg font-semibold text-orange-600">
+                <div className="bg-gray-800/60 backdrop-blur-md border border-gray-600/30 shadow-lg p-4 rounded-lg">
+                  <div className="text-sm text-gray-400 mb-1">매장수</div>
+                  <div className="text-lg font-semibold text-orange-400">
                     {brand.storeCount ? `${brand.storeCount}개` : '정보없음'}
                   </div>
                 </div>
@@ -284,33 +284,33 @@ export default function BrandDetailPage() {
 
             {/* 브랜드 통계 */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-              <div className="bg-gray-50 p-4 rounded-lg text-center">
-                <div className="text-2xl font-bold text-blue-600">{brand.viewCount || 0}</div>
-                <div className="text-sm text-gray-600">조회수</div>
+              <div className="bg-gray-800/60 backdrop-blur-md border border-gray-600/30 shadow-lg p-4 rounded-lg text-center">
+                <div className="text-2xl font-bold text-blue-400">{brand.viewCount || 0}</div>
+                <div className="text-sm text-gray-400">조회수</div>
               </div>
-              <div className="bg-gray-50 p-4 rounded-lg text-center">
-                <div className="text-2xl font-bold text-green-600">{brand.saveCount || 0}</div>
-                <div className="text-sm text-gray-600">저장수</div>
+              <div className="bg-gray-800/60 backdrop-blur-md border border-gray-600/30 shadow-lg p-4 rounded-lg text-center">
+                <div className="text-2xl font-bold text-green-400">{brand.saveCount || 0}</div>
+                <div className="text-sm text-gray-400">저장수</div>
               </div>
-              <div className="bg-gray-50 p-4 rounded-lg text-center">
-                <div className="text-2xl font-bold text-purple-600">{brand.consultationCount || 0}</div>
-                <div className="text-sm text-gray-600">상담수</div>
+              <div className="bg-gray-800/60 backdrop-blur-md border border-gray-600/30 shadow-lg p-4 rounded-lg text-center">
+                <div className="text-2xl font-bold text-purple-400">{brand.consultationCount || 0}</div>
+                <div className="text-sm text-gray-400">상담수</div>
               </div>
             </div>
 
             {/* 추가 정보 */}
             {(brand.websiteUrl || brand.contactInfo) && (
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">연락처 정보</h3>
+              <div className="mt-6 pt-6 border-t border-gray-700">
+                <h3 className="text-lg font-semibold text-white mb-3">연락처 정보</h3>
                 <div className="space-y-2">
                   {brand.websiteUrl && (
                     <div className="flex items-center gap-2">
-                      <span className="text-gray-600">웹사이트:</span>
+                      <span className="text-gray-400">웹사이트:</span>
                       <a
                         href={brand.websiteUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
+                        className="text-blue-400 hover:underline"
                       >
                         {brand.websiteUrl}
                       </a>
@@ -318,8 +318,8 @@ export default function BrandDetailPage() {
                   )}
                   {brand.contactInfo && (
                     <div className="flex items-center gap-2">
-                      <span className="text-gray-600">연락처:</span>
-                      <span>{brand.contactInfo}</span>
+                      <span className="text-gray-400">연락처:</span>
+                      <span className="text-white">{brand.contactInfo}</span>
                     </div>
                   )}
                 </div>

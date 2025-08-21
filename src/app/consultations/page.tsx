@@ -1,295 +1,414 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { userBrandAPI } from '@/lib/api';
-import { Consultation } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
+import { userBrandAPI } from '@/lib/api';
+import { Consultation, UserResponseType } from '@/types';
 import AuthGuard from '@/components/AuthGuard';
 
 export default function ConsultationsPage() {
   const { user } = useAuth();
   const [consultations, setConsultations] = useState<Consultation[]>([]);
+  const [rescheduleRequests, setRescheduleRequests] = useState<Consultation[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'inProgress' | 'completed' | 'cancelled'>('inProgress');
+  const [activeTab, setActiveTab] = useState<'all' | 'reschedule'>('all');
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
 
-  // 상담 이력 조회 (임시 데이터)
-  const fetchConsultations = () => {
-    // 실제 API 연동 시에는 userBrandAPI.getConsultations 사용
-    const tempConsultations: Consultation[] = [
-      {
-        id: 1,
-        brand: {
-          id: 1,
-          name: '맥도날드',
-          description: '전 세계적으로 인정받는 패스트푸드 프랜차이즈',
-          category: { id: 1, name: '외식' },
-          createdAt: '2025-01-15',
-          updatedAt: '2025-01-15'
-        },
-        user: { id: 1, email: 'user@example.com', name: '사용자', role: 'USER', createdAt: '2025-01-01' },
-        message: '창업 비용과 수익성에 대해 자세히 알고 싶습니다.',
-        status: { id: 1, name: '예약 확정' },
-        createdAt: '2025-01-15',
-        updatedAt: '2025-01-20'
-      },
-      {
-        id: 2,
-        brand: {
-          id: 2,
-          name: '스타벅스',
-          description: '프리미엄 커피 브랜드',
-          category: { id: 1, name: '외식' },
-          createdAt: '2025-01-10',
-          updatedAt: '2025-01-10'
-        },
-        user: { id: 1, email: 'user@example.com', name: '사용자', role: 'USER', createdAt: '2025-01-01' },
-        message: '매장 위치 선정 관련 상담 희망',
-        status: { id: 2, name: '조정 요청 중' },
-        createdAt: '2025-01-10',
-        updatedAt: '2025-01-18'
+  // 전체 상담 목록 조회
+  const fetchConsultations = async (pageNum: number = 0, append: boolean = false) => {
+    if (!user?.id) return;
+
+    try {
+      const response = await userBrandAPI.getConsultations(user.id, pageNum, 10);
+      const newConsultations = response.data.data.content;
+      
+      if (append) {
+        setConsultations(prev => [...prev, ...newConsultations]);
+      } else {
+        setConsultations(newConsultations);
       }
-    ];
-    
-    setConsultations(tempConsultations);
-    setLoading(false);
+      
+      setHasMore(!response.data.data.pageInfo.last);
+    } catch (error) {
+      console.error('상담 목록 조회 실패:', error);
+    }
+  };
+
+  // 일정 조정 요청 목록 조회
+  const fetchRescheduleRequests = async () => {
+    if (!user?.id) return;
+
+    try {
+      const response = await userBrandAPI.getRescheduleRequests(user.id);
+      setRescheduleRequests(response.data.data);
+    } catch (error) {
+      console.error('일정 조정 요청 목록 조회 실패:', error);
+    }
+  };
+
+  // 초기 데이터 로드
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      await Promise.all([
+        fetchConsultations(0),
+        fetchRescheduleRequests()
+      ]);
+      setLoading(false);
+    };
+
+    if (user?.id) {
+      loadData();
+    }
+  }, [user?.id]);
+
+  // 더 보기
+  const loadMore = () => {
+    const nextPage = page + 1;
+    setPage(nextPage);
+    fetchConsultations(nextPage, true);
+  };
+
+  // 일정 조정 응답
+  const handleRescheduleResponse = async (consultationId: number, response: UserResponseType) => {
+    if (!user?.id) return;
+
+    try {
+      await userBrandAPI.respondToReschedule(consultationId, { userResponse: response }, user.id);
+      
+      const action = response === 'ACCEPT' ? '수락' : '거절';
+      alert(`일정 조정을 ${action}했습니다.`);
+      
+      // 데이터 새로고침
+      await Promise.all([
+        fetchConsultations(0),
+        fetchRescheduleRequests()
+      ]);
+      setPage(0);
+      
+    } catch (error) {
+      console.error('일정 조정 응답 실패:', error);
+      alert('응답 처리에 실패했습니다.');
+    }
   };
 
   // 상담 취소
-  const handleCancelConsultation = (consultationId: number) => {
-    if (confirm('정말로 이 상담을 취소하시겠습니까?')) {
-      setConsultations(prev => prev.filter(c => c.id !== consultationId));
+  const handleCancelConsultation = async (consultationId: number) => {
+    if (!user?.id) return;
+    
+    if (!confirm('상담을 취소하시겠습니까?')) return;
+
+    try {
+      await userBrandAPI.cancelConsultation(consultationId, user.id);
+      alert('상담이 취소되었습니다.');
+      
+      // 데이터 새로고침
+      await Promise.all([
+        fetchConsultations(0),
+        fetchRescheduleRequests()
+      ]);
+      setPage(0);
+      
+    } catch (error) {
+      console.error('상담 취소 실패:', error);
+      alert('상담 취소에 실패했습니다.');
     }
   };
 
-  // 상담 응답
-  const handleRespondConsultation = (consultationId: number) => {
-    // 상담 응답 로직 구현
-    alert('상담 응답 기능이 구현되었습니다.');
+  // 상태별 스타일
+  const getStatusStyle = (statusName: string) => {
+    const styles = {
+      'PENDING': 'bg-yellow-900/30 text-yellow-200 border-yellow-700',
+      'RESCHEDULE_REQUEST': 'bg-orange-900/30 text-orange-200 border-orange-700',
+      'CONFIRMED': 'bg-green-900/30 text-green-200 border-green-700',
+      'CANCELLED': 'bg-gray-800 text-gray-300 border-gray-600',
+    };
+    return styles[statusName as keyof typeof styles] || 'bg-gray-800 text-gray-300';
   };
 
-  useEffect(() => {
-    fetchConsultations();
-  }, []);
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case '예약 확정': return 'text-green-600';
-      case '조정 요청 중': return 'text-orange-600';
-      case '완료': return 'text-blue-600';
-      case '취소': return 'text-red-600';
-      default: return 'text-gray-600';
-    }
+  // 상태별 표시 텍스트
+  const getStatusText = (statusName: string) => {
+    const texts = {
+      'PENDING': '신청 중',
+      'RESCHEDULE_REQUEST': '일정 조정 중',
+      'CONFIRMED': '확정',
+      'CANCELLED': '취소',
+    };
+    return texts[statusName as keyof typeof texts] || statusName;
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case '예약 확정': return '🟢';
-      case '조정 요청 중': return '🟠';
-      case '완료': return '🔵';
-      case '취소': return '🔴';
-      default: return '⚪';
-    }
+  // 날짜 포맷팅
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('ko-KR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      weekday: 'short'
+    });
   };
+
+  // 날짜 시간 포맷팅
+  const formatDateTime = (dateTimeString: string) => {
+    return new Date(dateTimeString).toLocaleString('ko-KR', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  if (loading) {
+    return (
+      <AuthGuard user={user}>
+        <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+            <p className="mt-4 text-gray-400">상담 내역을 불러오는 중...</p>
+          </div>
+        </div>
+      </AuthGuard>
+    );
+  }
 
   return (
     <AuthGuard user={user}>
-      <div className="min-h-screen bg-gray-900 pb-20">
-      {/* IPTV 헤더 */}
-      <div className="bg-blue-900 text-white p-4">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center space-x-4">
-            <Link href="/" className="text-blue-200 hover:text-white">
-              ← 홈으로 돌아가기
-            </Link>
-            <div>
-              <h1 className="text-2xl font-bold text-blue-400">프랜차이즈TV</h1>
-              <p className="text-sm text-blue-200">성공 창업의 시작</p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-4 text-sm">
-            <span>21:36</span>
-            <span>Ch.887</span>
-            <div className="w-6 h-6 bg-blue-600 rounded"></div>
-          </div>
-        </div>
-      </div>
-
-      {/* 메인 콘텐츠 */}
-      <div className="p-6">
-        <div className="bg-white rounded-lg p-6">
+      <div className="min-h-screen bg-slate-950 pb-20">
+        <div className="max-w-4xl mx-auto px-4 py-8">
           {/* 헤더 */}
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">상담 이력</h2>
-            
-            {/* 상태별 탭 */}
-            <div className="flex space-x-1 bg-gray-100 rounded-lg p-1">
-              <button
-                onClick={() => setActiveTab('inProgress')}
-                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                  activeTab === 'inProgress'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                진행중: 3건
-              </button>
-              <button
-                onClick={() => setActiveTab('completed')}
-                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                  activeTab === 'completed'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                완료: 2건
-              </button>
-              <button
-                onClick={() => setActiveTab('cancelled')}
-                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                  activeTab === 'cancelled'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                취소: 1건
-              </button>
-            </div>
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-white mb-2">상담 관리</h1>
+            <p className="text-gray-300">창업 상담 신청 내역과 일정을 확인하고 관리하세요.</p>
           </div>
 
-          {loading ? (
-            <div className="text-center py-12">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              <p className="mt-2 text-gray-600">상담 이력을 불러오는 중...</p>
-            </div>
-          ) : error ? (
-            <div className="text-center py-12">
-              <p className="text-red-600">{error}</p>
-              <button
-                onClick={() => fetchConsultations()}
-                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                다시 시도
-              </button>
-            </div>
-          ) : consultations.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-4xl">💬</span>
-              </div>
-              <p className="text-gray-600 mb-4">아직 상담 이력이 없습니다.</p>
-              <Link
-                href="/brands"
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                브랜드 둘러보기
-              </Link>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {consultations.map((consultation) => (
-                <div
-                  key={consultation.id}
-                  className="bg-gray-50 rounded-lg p-6 hover:shadow-md transition-shadow"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      {/* 브랜드 정보 */}
-                      <div className="flex items-center space-x-3 mb-3">
-                        <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
-                          <span className="text-white text-lg font-bold">
-                            {consultation.brand.name.charAt(0)}
-                          </span>
-                        </div>
-                        <div>
-                          <h3 className="text-lg font-semibold text-gray-900">
-                            브랜드명: {consultation.brand.name}
+          {/* 탭 네비게이션 */}
+          <div className="flex space-x-1 mb-6 bg-gray-900/60 backdrop-blur-md border border-gray-700/30 shadow-xl rounded-lg p-1">
+            <button
+              onClick={() => setActiveTab('all')}
+              className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                activeTab === 'all'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-300 hover:text-white hover:bg-gray-800'
+              }`}
+            >
+              전체 상담 ({consultations.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('reschedule')}
+              className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors relative ${
+                activeTab === 'reschedule'
+                  ? 'bg-orange-600 text-white'
+                  : 'text-gray-300 hover:text-white hover:bg-gray-800'
+              }`}
+            >
+              일정 조정 요청 ({rescheduleRequests.length})
+              {rescheduleRequests.length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {rescheduleRequests.length}
+                </span>
+              )}
+            </button>
+          </div>
+
+          {/* 전체 상담 목록 */}
+          {activeTab === 'all' && (
+            <div className="space-y-4">
+              {consultations.length === 0 ? (
+                <div className="bg-gray-900/60 backdrop-blur-md border border-gray-700/30 shadow-xl rounded-lg p-8 text-center">
+                  <div className="text-gray-500 mb-4">
+                    <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-3.582 8-8 8a8.959 8.959 0 01-4.906-1.472L3 21l2.728-5.094A8.959 8.959 0 013 12c0-4.418 3.582-8 8-8s8 3.582 8 8z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-medium text-white mb-2">아직 신청한 상담이 없습니다</h3>
+                  <p className="text-gray-400 mb-4">관심 있는 브랜드에 상담을 신청해보세요.</p>
+                  <a
+                    href="/brands"
+                    className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    브랜드 둘러보기
+                  </a>
+                </div>
+              ) : (
+                <>
+                  {consultations.map((consultation) => (
+                    <div key={consultation.consultationId} className="bg-gray-900/60 backdrop-blur-md border border-gray-700/30 shadow-xl rounded-lg p-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold text-white mb-1">
+                            {consultation.brand.brandName}
                           </h3>
-                          <p className="text-sm text-gray-600">
-                            신청일: {new Date(consultation.createdAt).toLocaleDateString()}
-                          </p>
+                          <span className="text-sm text-gray-400">{consultation.brand.categoryName}</span>
                         </div>
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusStyle(consultation.status.statusName)}`}>
+                          {getStatusText(consultation.status.statusName)}
+                        </span>
                       </div>
 
-                      {/* 상담 정보 */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div>
-                          <p className="text-sm text-gray-600">
-                            상담일시: {new Date(consultation.updatedAt).toLocaleDateString()} {consultation.status.name === '예약 확정' ? '14:00' : '16:00'}
+                          <p className="text-sm text-gray-400">희망 상담일</p>
+                          <p className="font-medium text-white">
+                            {formatDate(consultation.preferredDate)} {consultation.preferredTime}
                           </p>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <span className={`text-sm font-medium ${getStatusColor(consultation.status.name)}`}>
-                            {getStatusIcon(consultation.status.name)} 상태: {consultation.status.name}
-                          </span>
+                        <div>
+                          <p className="text-sm text-gray-400">신청일</p>
+                          <p className="font-medium text-white">{formatDateTime(consultation.createdAt)}</p>
                         </div>
                       </div>
 
-                      {/* 매니저 노트 */}
-                      <div className="mb-3">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <span className="text-sm font-medium text-gray-700">👤 매니저 노트</span>
+                      {consultation.status.statusName === 'CONFIRMED' && consultation.confirmedAt && (
+                        <div className="bg-green-900/20 border border-green-700 rounded-md p-3 mb-4">
+                          <p className="text-sm text-green-200">
+                            ✅ 상담이 확정되었습니다. 확정일: {formatDateTime(consultation.confirmedAt)}
+                          </p>
                         </div>
-                        <p className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
-                          {consultation.status.name === '예약 확정' 
-                            ? '가능한 시간대 확인 필요'
-                            : '다른 시간대 제안'
-                          }
-                        </p>
-                      </div>
+                      )}
 
-                      {/* 문의사항 */}
-                      <div>
-                        <div className="flex items-center space-x-2 mb-2">
-                          <span className="text-sm font-medium text-gray-700">📄 문의사항</span>
+                      {/* 일정 조정 정보 */}
+                      {consultation.adjustedDate && consultation.adjustedTime && (
+                        <div className="bg-orange-900/20 border border-orange-700 rounded-md p-3 mb-4">
+                          <p className="text-sm text-orange-200 font-medium mb-2">일정 조정 내역</p>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                              <p className="text-xs text-orange-300">기존 희망 일정</p>
+                              <p className="text-sm text-orange-100">
+                                {formatDate(consultation.preferredDate)} {consultation.preferredTime}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-orange-300">조정된 일정</p>
+                              <p className="text-sm text-orange-100">
+                                {formatDate(consultation.adjustedDate)} {consultation.adjustedTime}
+                              </p>
+                            </div>
+                          </div>
+                          {consultation.adjustmentReason && (
+                            <div className="mt-2">
+                              <p className="text-xs text-orange-300">조정 사유</p>
+                              <p className="text-sm text-orange-100">{consultation.adjustmentReason}</p>
+                            </div>
+                          )}
                         </div>
-                        <p className="text-sm text-gray-600 bg-gray-100 p-3 rounded-lg">
-                          {consultation.message}
-                        </p>
-                      </div>
-                    </div>
+                      )}
 
-                    {/* 액션 버튼 */}
-                    <div className="flex flex-col space-y-2 ml-4">
-                      {consultation.status.name === '예약 확정' ? (
-                        <>
-                          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
-                            상세보기
-                          </button>
-                          <button className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 text-sm">
-                            일정변경
-                          </button>
-                        </>
-                      ) : consultation.status.name === '조정 요청 중' ? (
-                        <>
-                          <button 
-                            onClick={() => handleRespondConsultation(consultation.id)}
-                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+                      {consultation.managerNote && (
+                        <div className="bg-gray-800/60 backdrop-blur-md border border-gray-600/30 shadow-lg rounded-md p-3 mb-4">
+                          <p className="text-sm text-gray-400 mb-1">매니저 메모</p>
+                          <p className="text-sm text-gray-200">{consultation.managerNote}</p>
+                        </div>
+                      )}
+
+                      {consultation.status.statusName === 'PENDING' && (
+                        <div className="flex justify-end">
+                          <button
+                            onClick={() => handleCancelConsultation(consultation.consultationId)}
+                            className="px-4 py-2 text-sm text-red-400 border border-red-600 rounded-md hover:bg-red-900/20"
                           >
-                            응답하기
+                            상담 취소
                           </button>
-                          <button 
-                            onClick={() => handleCancelConsultation(consultation.id)}
-                            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
-                          >
-                            취소하기
-                          </button>
-                        </>
-                      ) : (
-                        <button className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 text-sm">
-                          상세보기
-                        </button>
+                        </div>
                       )}
                     </div>
+                  ))}
+
+                  {hasMore && (
+                    <div className="text-center">
+                      <button
+                        onClick={loadMore}
+                        className="px-6 py-2 bg-gray-800 text-gray-300 rounded-lg hover:bg-gray-700"
+                      >
+                        더 보기
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+          {/* 일정 조정 요청 목록 */}
+          {activeTab === 'reschedule' && (
+            <div className="space-y-4">
+              {rescheduleRequests.length === 0 ? (
+                <div className="bg-gray-900/60 backdrop-blur-md border border-gray-700/30 shadow-xl rounded-lg p-8 text-center">
+                  <div className="text-gray-500 mb-4">
+                    <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                   </div>
+                  <h3 className="text-lg font-medium text-white mb-2">일정 조정 요청이 없습니다</h3>
+                  <p className="text-gray-400">매니저로부터 일정 조정 요청이 오면 여기에 표시됩니다.</p>
                 </div>
-              ))}
+              ) : (
+                rescheduleRequests.map((consultation) => (
+                  <div key={consultation.consultationId} className="bg-gray-900 border border-orange-700 rounded-lg p-6">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-white mb-1">
+                          {consultation.brand.brandName}
+                        </h3>
+                        <span className="text-sm text-gray-400">{consultation.brand.categoryName}</span>
+                      </div>
+                      <span className="px-3 py-1 rounded-full text-xs font-medium bg-orange-900/30 text-orange-200 border border-orange-700">
+                        일정 조정 요청
+                      </span>
+                    </div>
+
+                    <div className="bg-orange-900/20 border border-orange-700 rounded-md p-4 mb-4">
+                      <h4 className="font-medium text-orange-200 mb-2">매니저가 다음 일정을 제안했습니다:</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-orange-300">기존 희망 일정</p>
+                          <p className="font-medium text-orange-100">
+                            {formatDate(consultation.preferredDate)} {consultation.preferredTime}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-orange-300">조정 제안 일정</p>
+                          <p className="font-medium text-orange-100">
+                            {consultation.adjustedDate && formatDate(consultation.adjustedDate)} {consultation.adjustedTime}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {consultation.adjustmentReason && (
+                        <div className="mt-3">
+                          <p className="text-sm text-orange-300">조정 사유</p>
+                          <p className="text-sm text-orange-100 mt-1">{consultation.adjustmentReason}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {consultation.managerNote && (
+                      <div className="bg-gray-800/60 backdrop-blur-md border border-gray-600/30 shadow-lg rounded-md p-3 mb-4">
+                        <p className="text-sm text-gray-400 mb-1">매니저 메모</p>
+                        <p className="text-sm text-gray-200">{consultation.managerNote}</p>
+                      </div>
+                    )}
+
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => handleRescheduleResponse(consultation.consultationId, 'ACCEPT')}
+                        className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
+                      >
+                        제안된 일정으로 확정
+                      </button>
+                      <button
+                        onClick={() => handleRescheduleResponse(consultation.consultationId, 'REJECT')}
+                        className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium"
+                      >
+                        거절 (상담 취소)
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           )}
         </div>
       </div>
-    </div>
     </AuthGuard>
   );
 }

@@ -62,11 +62,10 @@ export default function BrandsPage() {
         );
       }
       
-      setBrands(data);
-      
-      // 매니저가 아닌 로그인한 사용자인 경우만 찜 상태 조회
+      // 매니저가 아닌 로그인한 사용자인 경우만 찜 상태 조회 후 정렬
       if (user && user.role !== 'MANAGER' && user.id && data.length > 0) {
-        await fetchBrandSaveStatus(data.map(brand => brand.brandId));
+        const sortedData = await fetchBrandSaveStatusAndSort(data);
+        setBrands(sortedData);
       } else {
         // 매니저이거나 로그인하지 않은 경우 모든 브랜드를 찜하지 않은 상태로 설정
         const savedStates: { [key: number]: boolean } = {};
@@ -74,6 +73,7 @@ export default function BrandsPage() {
           savedStates[brand.brandId] = false;
         });
         setSavingStates(savedStates);
+        setBrands(data);
       }
       
       setError(null);
@@ -98,6 +98,38 @@ export default function BrandsPage() {
     } catch (err) {
       console.error('찜 상태 조회 실패:', err);
     }
+  };
+
+  // 브랜드 찜 상태 조회 후 정렬
+  const fetchBrandSaveStatusAndSort = async (brands: Brand[]): Promise<Brand[]> => {
+    if (!user || !user.id || brands.length === 0) return brands;
+    
+    try {
+      const brandIds = brands.map(brand => brand.brandId);
+      const response = await userBrandAPI.getBrandSaveStatus(brandIds, user.id);
+      
+      if (response.data.success) {
+        const saveStatus = response.data.data;
+        setSavingStates(saveStatus);
+        
+        // 찜한 브랜드가 상단에 오도록 정렬
+        const sortedBrands = brands.sort((a, b) => {
+          const aSaved = saveStatus[a.brandId] || false;
+          const bSaved = saveStatus[b.brandId] || false;
+          
+          // 찜한 브랜드를 상단으로
+          if (aSaved && !bSaved) return -1;
+          if (!aSaved && bSaved) return 1;
+          return 0; // 찜 상태가 같으면 기존 순서 유지
+        });
+        
+        return sortedBrands;
+      }
+    } catch (err) {
+      console.error('찜 상태 조회 실패:', err);
+    }
+    
+    return brands;
   };
 
   // 카테고리 목록 조회
@@ -131,10 +163,9 @@ export default function BrandsPage() {
     
     try {
       await userBrandAPI.toggleSavedBrand(brandId, user.id);
-      setSavingStates(prev => ({
-        ...prev,
-        [brandId]: !prev[brandId]
-      }));
+      
+      // 백엔드에서 saveCount가 업데이트되므로 전체 브랜드 목록을 다시 조회
+      await fetchBrands(0, selectedCategory || undefined, searchKeyword);
     } catch (err) {
       console.error('찜하기/해제 실패:', err);
     }
@@ -149,36 +180,37 @@ export default function BrandsPage() {
 
   return (
     <AuthGuard user={user}>
-      <div className="min-h-screen bg-gray-900 pb-20">
+      <div className="h-screen bg-slate-950 flex flex-col">
         {/* IPTV 헤더 */}
-        <div className="bg-blue-900 text-white p-4">
+        <div className="bg-slate-900/95 backdrop-blur-sm text-white p-4 flex-shrink-0">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-4">
-              <Link href="/" className="text-blue-200 hover:text-white">
+              <Link href="/" className="text-gray-300 hover:text-white">
                 ← 홈으로 돌아가기
               </Link>
               <div>
                 <h1 className="text-2xl font-bold text-blue-400">프랜차이즈TV</h1>
-                <p className="text-sm text-blue-200">성공 창업의 시작</p>
+                <p className="text-sm text-gray-300">성공 창업의 시작</p>
               </div>
             </div>
             <div className="flex items-center space-x-4 text-sm">
               <span>21:36</span>
               <span>Ch.887</span>
-              <div className="w-6 h-6 bg-blue-600 rounded"></div>
+              <div className="w-6 h-6 bg-gray-700 rounded"></div>
             </div>
           </div>
         </div>
 
-        {/* 메인 콘텐츠 */}
-        <div className="p-6">
+        {/* 메인 콘텐츠 영역 - 스크롤 가능 */}
+        <div className="flex-1 overflow-y-auto bg-slate-950">
+          <div className="p-6">
           {/* 매니저용 브랜드 추가 버튼 */}
           {user?.role === 'MANAGER' && (
-            <div className="bg-white rounded-lg p-4 mb-6">
+            <div className="bg-gray-900/60 backdrop-blur-md border border-gray-700/30 shadow-xl rounded-lg p-4 mb-6">
               <div className="flex justify-between items-center">
                 <div>
-                  <h2 className="text-lg font-medium text-gray-900">브랜드 관리</h2>
-                  <p className="text-sm text-gray-600">새로운 브랜드를 등록하여 관리하세요</p>
+                  <h2 className="text-lg font-medium text-white">브랜드 관리</h2>
+                  <p className="text-sm text-gray-300">새로운 브랜드를 등록하여 관리하세요</p>
                 </div>
                 <Link
                   href="/manager"
@@ -191,46 +223,50 @@ export default function BrandsPage() {
           )}
 
           {/* 카테고리 선택 */}
-          <div className="bg-white rounded-lg p-6 mb-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">카테고리 선택</h2>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              <button
-                onClick={() => handleCategorySelect(null)}
-                className={`p-4 rounded-lg text-center transition-colors ${
-                  selectedCategory === null
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                <div className="text-2xl mb-2">🏠</div>
-                <div className="text-sm font-medium">전체</div>
-                <div className="text-xs">브랜드 탐색</div>
-              </button>
-              {categories.map((category) => (
+          <div className="bg-gray-900/60 backdrop-blur-md border border-gray-700/30 shadow-xl rounded-lg p-6 mb-6">
+            <h2 className="text-xl font-bold text-white mb-4">카테고리 선택</h2>
+            <div className="overflow-x-auto scrollbar-hide">
+              <div className="flex space-x-3 pb-2">
                 <button
-                  key={category.categoryId}
-                  onClick={() => handleCategorySelect(category.categoryId)}
-                  className={`p-4 rounded-lg text-center transition-colors ${
-                    selectedCategory === category.categoryId
+                  onClick={() => handleCategorySelect(null)}
+                  className={`flex-shrink-0 px-6 py-3 rounded-lg transition-colors ${
+                    selectedCategory === null
                       ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
                   }`}
                 >
-                  <div className="text-2xl mb-2">
-                    {category.categoryName === '외식' ? '🍽️' : 
-                     category.categoryName === '뷰티' ? '💄' :
-                     category.categoryName === '교육' ? '📚' :
-                     category.categoryName === '편의점' ? '🏪' : '🏠'}
+                  <div className="flex items-center space-x-2">
+                    <span className="text-lg">🏠</span>
+                    <span className="text-sm font-medium">전체</span>
                   </div>
-                  <div className="text-sm font-medium">{category.categoryName}</div>
-                  <div className="text-xs">브랜드 탐색</div>
                 </button>
-              ))}
+                {categories.map((category) => (
+                  <button
+                    key={category.categoryId}
+                    onClick={() => handleCategorySelect(category.categoryId)}
+                    className={`flex-shrink-0 px-6 py-3 rounded-lg transition-colors ${
+                      selectedCategory === category.categoryId
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <span className="text-lg">
+                        {category.categoryName === '외식' ? '🍽️' : 
+                         category.categoryName === '뷰티' ? '💄' :
+                         category.categoryName === '교육' ? '📚' :
+                         category.categoryName === '편의점' ? '🏪' : '🏠'}
+                      </span>
+                      <span className="text-sm font-medium whitespace-nowrap">{category.categoryName}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
           {/* 검색 바 */}
-          <div className="bg-white rounded-lg p-6 mb-6">
+          <div className="bg-gray-900/60 backdrop-blur-md border border-gray-700/30 shadow-xl rounded-lg p-6 mb-6">
             <div className="flex gap-2">
               <input
                 type="text"
@@ -238,134 +274,189 @@ export default function BrandsPage() {
                 value={searchKeyword}
                 onChange={(e) => setSearchKeyword(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-1 px-4 py-2 border border-gray-600 bg-gray-800 text-white placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <button
                 onClick={handleSearch}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-lg transform transition-all duration-200 hover:scale-105"
               >
                 검색
               </button>
             </div>
           </div>
 
-          {/* 브랜드 목록 */}
-          <div className="bg-white rounded-lg p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">
-                  {selectedCategory 
-                    ? `${categories.find(c => c.categoryId === selectedCategory)?.categoryName} 브랜드`
-                    : '전체 브랜드'
-                  }
-                </h2>
-                {user?.role === 'MANAGER' && (
-                  <p className="text-sm text-blue-600 mt-1">
-                    💡 내 브랜드가 상단에 강조표시됩니다
-                  </p>
-                )}
-              </div>
-              <span className="text-sm text-gray-600">
-                총 {brands.length}개 브랜드
-              </span>
-            </div>
-
+          {/* Netflix 스타일 카테고리별 브랜드 목록 */}
+          <div className="space-y-8">
             {loading ? (
               <div className="text-center py-12">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                <p className="mt-2 text-gray-600">브랜드 목록을 불러오는 중...</p>
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+                <p className="mt-4 text-gray-400">브랜드 목록을 불러오는 중...</p>
               </div>
             ) : error ? (
               <div className="text-center py-12">
-                <p className="text-red-600">{error}</p>
+                <p className="text-red-400 mb-4">{error}</p>
                 <button
                   onClick={() => fetchBrands()}
-                  className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
                   다시 시도
                 </button>
               </div>
             ) : brands.length === 0 ? (
               <div className="text-center py-12">
-                <p className="text-gray-600">
+                <p className="text-gray-400">
                   {searchKeyword ? '검색 결과가 없습니다.' : '등록된 브랜드가 없습니다.'}
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {brands.map((brand) => {
-                  // 현재 로그인한 매니저가 관리하는 브랜드인지 확인 (managerName으로 비교)
-                  const isMyBrand = user?.role === 'MANAGER' && user.name && brand.managerName === user.name;
-                  
-                  return (
-                    <div
-                      key={brand.brandId}
-                      className={`rounded-lg p-6 hover:shadow-lg transition-all duration-300 ${
-                        isMyBrand
-                          ? 'bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-300 shadow-lg transform scale-[1.02]' 
-                          : 'bg-gray-50 border border-gray-200'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center space-x-2">
-                          <span className="inline-block px-3 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
-                            {brand.categoryName}
-                          </span>
-                          {isMyBrand && (
-                            <span className="inline-block px-3 py-1 text-sm font-bold bg-gradient-to-r from-green-400 to-emerald-500 text-white rounded-full shadow-md animate-pulse">
-                              ⭐ 내 브랜드
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center space-x-2 text-sm text-gray-500">
-                          <span>👁️ {brand.viewCount || 0}</span>
-                          <span>❤️ {brand.saveCount || 0}</span>
+              <>
+                {/* 매니저 브랜드 섹션 (매니저인 경우) */}
+                {user?.role === 'MANAGER' && brands.filter(brand => user.name && brand.managerName === user.name).length > 0 && (
+                  <div className="mb-8">
+                    <div className="flex items-center justify-between mb-4 px-2">
+                      <h2 className="text-xl font-bold text-white">내 브랜드</h2>
+                      <span className="text-sm text-gray-400">
+                        {brands.filter(brand => user.name && brand.managerName === user.name).length}개
+                      </span>
+                    </div>
+                    <div className="relative">
+                      <div className="overflow-x-auto scrollbar-hide">
+                        <div className="flex space-x-4 pb-2">
+                          {brands.filter(brand => user.name && brand.managerName === user.name).map((brand) => {
+                            const isSaved = savingStates[brand.brandId];
+                            return (
+                              <div
+                                key={brand.brandId}
+                                className="flex-shrink-0 w-64 bg-gradient-to-br from-blue-800/50 to-indigo-800/50 backdrop-blur-md rounded-lg overflow-hidden shadow-lg hover:shadow-xl transform transition-all duration-300 hover:scale-105 border border-blue-500/50"
+                              >
+                                <div className="p-3">
+                                  <div className="flex items-start justify-between mb-3">
+                                    <div className="flex items-center space-x-3">
+                                      <div className="w-10 h-10 bg-gradient-to-r from-blue-400 to-purple-400 rounded-lg flex items-center justify-center">
+                                        <span className="text-white text-lg font-bold">
+                                          {brand.brandName?.charAt(0) || 'B'}
+                                        </span>
+                                      </div>
+                                      <span className="inline-block px-2 py-1 text-xs font-bold bg-gradient-to-r from-green-400 to-emerald-500 text-white rounded-full shadow-md animate-pulse">
+                                        ⭐ 내 브랜드
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <h3 className="text-sm font-bold text-blue-200 mb-2 line-clamp-1">
+                                    {brand.brandName || '브랜드명'}
+                                  </h3>
+                                  <div className="space-y-1 mb-3">
+                                    <div className="flex items-center text-gray-300 text-xs">
+                                      <span className="w-1 h-1 bg-blue-500 rounded-full mr-2"></span>
+                                      {brand.managerName || '매니저'}
+                                    </div>
+                                    <div className="flex items-center text-gray-300 text-xs">
+                                      <span className="w-1 h-1 bg-purple-500 rounded-full mr-2"></span>
+                                      {brand.categoryName || '카테고리'}
+                                    </div>
+                                    <div className="flex items-center text-gray-400 text-xs">
+                                      <span className="w-1 h-1 bg-green-500 rounded-full mr-2"></span>
+                                      조회: {brand.viewCount || 0} | 찜: {brand.saveCount || 0}
+                                    </div>
+                                  </div>
+                                  <div className="flex space-x-2">
+                                    <Link
+                                      href={`/brands/${brand.brandId}`}
+                                      className="flex-1 bg-white/90 text-gray-900 px-3 py-2 rounded-md text-xs font-medium text-center hover:bg-white transition-colors"
+                                    >
+                                      상세보기
+                                    </Link>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
-                      
-                      <h3 className={`text-lg font-semibold mb-2 ${
-                        isMyBrand
-                          ? 'text-blue-800 text-xl font-bold' 
-                          : 'text-gray-900'
-                      }`}>
-                        {isMyBrand && '🔥 '}{brand.brandName}
-                      </h3>
-                      <p className="text-gray-600 text-sm mb-4 line-clamp-3">
-                        매니저: {brand.managerName} | 초기비용: {brand.initialCost ? brand.initialCost.toLocaleString() : '정보없음'}원
-                      </p>
-                    
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-500">
-                          월 평균 매출: {brand.avgMonthlyRevenue ? brand.avgMonthlyRevenue.toLocaleString() : '정보없음'}원
-                        </span>
-                        <div className="flex gap-2">
-                          <Link
-                            href={`/brands/${brand.brandId}`}
-                            className="px-3 py-2 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700 transition-colors"
-                          >
-                            상세보기
-                          </Link>
-                          {/* 매니저가 아닌 경우에만 찜하기 버튼 표시 */}
-                          {user?.role !== 'MANAGER' && (
-                            <button 
-                              onClick={() => handleToggleSave(brand.brandId)}
-                              className={`px-3 py-2 text-sm rounded-lg transition-colors ${
-                                savingStates[brand.brandId]
-                                  ? 'bg-red-600 text-white hover:bg-red-700' 
-                                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                              }`}
-                            >
-                              {savingStates[brand.brandId] ? '찜해제' : '찜하기'}
-                            </button>
-                          )}
+                    </div>
+                  </div>
+                )}
+
+                {/* 카테고리별 브랜드 섹션 */}
+                {categories.map((category) => {
+                  const categoryBrands = brands.filter(brand => brand.categoryName === category.categoryName);
+                  if (categoryBrands.length === 0) return null;
+
+                  return (
+                    <div key={category.categoryId} className="mb-8">
+                      <div className="flex items-center justify-between mb-4 px-2">
+                        <h2 className="text-xl font-bold text-white">{category.categoryName}</h2>
+                        <span className="text-sm text-gray-400">{categoryBrands.length}개</span>
+                      </div>
+                      <div className="relative">
+                        <div className="overflow-x-auto scrollbar-hide">
+                          <div className="flex space-x-4 pb-2">
+                            {categoryBrands.map((brand) => {
+                              const isMyBrand = user?.role === 'MANAGER' && user.name && brand.managerName === user.name;
+                              const isSaved = savingStates[brand.brandId];
+                              
+                              return (
+                                <div
+                                  key={brand.brandId}
+                                  className="flex-shrink-0 w-64 bg-gradient-to-br from-gray-800/40 to-gray-900/40 backdrop-blur-md rounded-lg overflow-hidden shadow-lg hover:shadow-xl transform transition-all duration-300 hover:scale-105 border border-gray-700/30"
+                                >
+                                  <div className="p-3">
+                                    <div className="flex items-start justify-between mb-3">
+                                      <div className="flex items-center space-x-3">
+                                        <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+                                          <span className="text-white text-lg font-bold">
+                                            {brand.brandName?.charAt(0) || 'B'}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <h3 className="text-sm font-bold text-white mb-2 line-clamp-1">
+                                      {brand.brandName || '브랜드명'}
+                                    </h3>
+                                    <div className="space-y-1 mb-3">
+                                      <div className="flex items-center text-gray-300 text-xs">
+                                        <span className="w-1 h-1 bg-blue-500 rounded-full mr-2"></span>
+                                        {brand.managerName || '매니저'}
+                                      </div>
+                                      <div className="flex items-center text-gray-400 text-xs">
+                                        <span className="w-1 h-1 bg-green-500 rounded-full mr-2"></span>
+                                        조회: {brand.viewCount || 0} | 찜: {brand.saveCount || 0}
+                                      </div>
+                                    </div>
+                                    <div className="flex space-x-2">
+                                      <Link
+                                        href={`/brands/${brand.brandId}`}
+                                        className="flex-1 bg-white/90 text-gray-900 px-3 py-2 rounded-md text-xs font-medium text-center hover:bg-white transition-colors"
+                                      >
+                                        상세보기
+                                      </Link>
+                                      {user?.role !== 'MANAGER' && (
+                                        <button 
+                                          onClick={() => handleToggleSave(brand.brandId)}
+                                          className={`flex-shrink-0 px-3 py-2 rounded-md text-xs font-medium transition-colors ${
+                                            isSaved 
+                                              ? 'bg-red-600 text-white hover:bg-red-700' 
+                                              : 'bg-gray-600/80 text-gray-300 hover:bg-gray-500'
+                                          }`}
+                                        >
+                                          {isSaved ? '♥' : '♡'}
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
                       </div>
                     </div>
                   );
                 })}
-              </div>
+              </>
             )}
           </div>
+        </div>
         </div>
       </div>
     </AuthGuard>

@@ -160,9 +160,9 @@ export default function EditBrandPage() {
 
   if (!user || user.role !== 'MANAGER') {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12">
+      <div className="min-h-screen bg-slate-950 flex flex-col justify-center py-12">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">
+          <h1 className="text-2xl font-bold text-white mb-4">
             접근 권한이 없습니다
           </h1>
           <p className="text-gray-600 mb-4">
@@ -181,7 +181,7 @@ export default function EditBrandPage() {
 
   if (initialLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">브랜드 정보를 불러오는 중...</p>
@@ -192,9 +192,9 @@ export default function EditBrandPage() {
 
   if (error && !brand) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12">
+      <div className="min-h-screen bg-slate-950 flex flex-col justify-center py-12">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">
+          <h1 className="text-2xl font-bold text-white mb-4">
             브랜드를 찾을 수 없습니다
           </h1>
           <p className="text-gray-600 mb-4">{error}</p>
@@ -210,12 +210,12 @@ export default function EditBrandPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-slate-950 py-8">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              <h1 className="text-3xl font-bold text-white mb-2">
                 브랜드 수정
               </h1>
               <p className="text-gray-600">
@@ -224,7 +224,7 @@ export default function EditBrandPage() {
             </div>
             <Link
               href="/manager"
-              className="text-gray-600 hover:text-gray-900 font-medium"
+              className="text-gray-600 hover:text-white font-medium"
             >
               ← 돌아가기
             </Link>
@@ -237,7 +237,7 @@ export default function EditBrandPage() {
           </div>
         )}
 
-        <div className="bg-white shadow rounded-lg">
+        <div className="bg-gray-900/60 backdrop-blur-md border border-gray-700/30 shadow-xl shadow rounded-lg">
           <div className="px-6 py-6">
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* 브랜드명 */}
@@ -376,7 +376,7 @@ export default function EditBrandPage() {
               <div className="flex justify-end space-x-3 pt-4">
                 <Link
                   href="/manager"
-                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-slate-950 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
                   취소
                 </Link>

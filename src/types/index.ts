@@ -107,31 +107,64 @@ export interface ManagerCreateRequest {
   brandDescription: string;
 }
 
-// 상담 관련 타입
+// 상담 관련 타입 (백엔드 ConsultationResponse에 맞춤)
 export interface Consultation {
-  id: number;
-  brand: Brand;
-  user: User;
-  message: string;
-  status: ConsultationStatus;
-  createdAt: string;
-  updatedAt: string;
+  consultationId: number;
+  user: {
+    userId: number;
+    name: string;
+    email: string;
+    phone: string;
+  };
+  brand: {
+    brandId: number;
+    brandName: string;
+    categoryName: string;
+  };
+  status: {
+    statusCode: number;
+    statusName: string;
+  };
+  preferredDate: string; // LocalDate
+  preferredTime: string; // LocalTime
+  managerNote?: string;
+  createdAt: string; // LocalDateTime
+  confirmedAt?: string;
+  completedAt?: string;
+  
+  // 일정 조정 관련
+  adjustedDate?: string;
+  adjustedTime?: string;
+  adjustmentReason?: string;
+  adjustmentRequestedAt?: string;
+  
+  // 사용자 응답 관련
+  userResponse?: 'ACCEPT' | 'REJECT';
+  userResponseAt?: string;
+  
+  // 활성 상태
+  isActive: boolean;
 }
 
 export interface ConsultationStatus {
-  id: number;
-  name: string;
-  description?: string;
+  statusCode: number;
+  statusName: string;
 }
+
+export type UserResponseType = 'ACCEPT' | 'REJECT';
 
 // 알림 관련 타입
 export interface Notification {
-  id: number;
-  user: User;
-  title: string;
+  notificationId: number;
+  recipientId: number;
+  recipientType: 'USER' | 'MANAGER';
+  consultationId?: number;
+  brandName?: string;
+  userName?: string;
+  statusName?: string;
   message: string;
-  isRead: boolean;
   createdAt: string;
+  isRead: boolean;
 }
 
 // 브랜드 생성/수정 요청 타입
@@ -148,13 +181,23 @@ export interface BrandUpdateRequest extends Partial<BrandCreateRequest> {
   id: number;
 }
 
-// 상담 생성 요청 타입
+// 상담 생성 요청 타입 (백엔드에 맞춤)
 export interface ConsultationCreateRequest {
+  userId: number; // 백엔드에서 필수로 요구
   brandId: number;
-  message: string;
+  preferredDate: string; // YYYY-MM-DD 형식
+  preferredTime: string; // HH:MM 형식
 }
 
-// 상담 상태 업데이트 요청 타입
-export interface ConsultationStatusUpdateRequest {
-  status: string;
+// 상담 일정 조정 요청 타입
+export interface ConsultationRescheduleRequest {
+  adjustedDate: string;
+  adjustedTime: string;
+  adjustmentReason?: string;
+  managerNote?: string;
+}
+
+// 사용자 응답 요청 타입
+export interface ConsultationUserResponseRequest {
+  userResponse: UserResponseType;
 }

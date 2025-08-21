@@ -1,260 +1,198 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import { userBrandAPI, managerBrandAPI } from '@/lib/api';
+import { Notification } from '@/types';
 import AuthGuard from '@/components/AuthGuard';
-
-interface Notification {
-  id: number;
-  title: string;
-  message: string;
-  type: 'success' | 'info' | 'warning' | 'error';
-  isRead: boolean;
-  createdAt: string;
-  timeAgo: string;
-  brandName?: string;
-  brandIcon?: string;
-}
 
 export default function NotificationsPage() {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [unreadCount, setUnreadCount] = useState(0);
 
-  // 알림 목록 조회 (임시 데이터)
-  const fetchNotifications = () => {
-    const tempNotifications: Notification[] = [
-      {
-        id: 1,
-        title: '맥도날드 상담 일정이 확정되었습니다',
-        message: '상담 일정이 확정되었습니다',
-        type: 'success',
-        isRead: false,
-        createdAt: '2025-01-20 14:00',
-        timeAgo: '5분 전',
-        brandName: '맥도날드',
-        brandIcon: '🍔'
-      },
-      {
-        id: 2,
-        title: '스타벅스 상담 일정 조정 요청',
-        message: '매니저가 다른 시간을 제안했습니다',
-        type: 'warning',
-        isRead: false,
-        createdAt: '2025-01-18 16:00',
-        timeAgo: '1시간 전',
-        brandName: '스타벅스',
-        brandIcon: '☕'
-      },
-      {
-        id: 3,
-        title: '네일샵 상담이 완료되었습니다',
-        message: '만족도 평가를 부탁드립니다',
-        type: 'info',
-        isRead: true,
-        createdAt: '2025-01-16 15:00',
-        timeAgo: '2일 전',
-        brandName: '네일샵',
-        brandIcon: '💅'
-      },
-      {
-        id: 4,
-        title: '치킨집 상담 일정이 확정되었습니다',
-        message: '상담 일정이 확정되었습니다',
-        type: 'success',
-        isRead: true,
-        createdAt: '2025-01-22 10:00',
-        timeAgo: '3일 전',
-        brandName: '치킨집',
-        brandIcon: '🍗'
-      }
-    ];
-    
-    setNotifications(tempNotifications);
-    setLoading(false);
+  // 알림 목록 조회
+  const fetchNotifications = async () => {
+    if (!user?.id) return;
+
+    try {
+      const isManager = user.role === 'MANAGER';
+      const response = isManager 
+        ? await managerBrandAPI.getNotifications(user.id)
+        : await userBrandAPI.getNotifications(user.id);
+      
+      setNotifications(response.data.data.content);
+    } catch (error) {
+      console.error('알림 목록 조회 실패:', error);
+    }
+  };
+
+  // 읽지 않은 알림 개수 조회
+  const fetchUnreadCount = async () => {
+    if (!user?.id) return;
+
+    try {
+      const isManager = user.role === 'MANAGER';
+      const response = isManager 
+        ? await managerBrandAPI.getUnreadNotificationCount(user.id)
+        : await userBrandAPI.getUnreadNotificationCount(user.id);
+      
+      setUnreadCount(response.data.data);
+    } catch (error) {
+      console.error('읽지 않은 알림 개수 조회 실패:', error);
+    }
   };
 
   // 알림 읽음 처리
-  const handleMarkAsRead = (notificationId: number) => {
-    setNotifications(prev => 
-      prev.map(notification => 
-        notification.id === notificationId 
-          ? { ...notification, isRead: true }
-          : notification
-      )
-    );
+  const markAsRead = async (notificationId: number) => {
+    try {
+      await userBrandAPI.markNotificationAsRead(notificationId);
+      
+      // 로컬 상태 업데이트
+      setNotifications(prev => 
+        prev.map(notification => 
+          notification.notificationId === notificationId 
+            ? { ...notification, isRead: true }
+            : notification
+        )
+      );
+      
+      // 읽지 않은 개수 업데이트
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error('알림 읽음 처리 실패:', error);
+    }
   };
 
-  // 모든 알림 읽음 처리
-  const handleMarkAllAsRead = () => {
-    setNotifications(prev => 
-      prev.map(notification => ({ ...notification, isRead: true }))
-    );
-  };
-
+  // 초기 데이터 로드
   useEffect(() => {
-    fetchNotifications();
-  }, []);
+    const loadData = async () => {
+      setLoading(true);
+      await Promise.all([
+        fetchNotifications(),
+        fetchUnreadCount()
+      ]);
+      setLoading(false);
+    };
 
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'success': return 'text-green-600';
-      case 'warning': return 'text-orange-600';
-      case 'error': return 'text-red-600';
-      case 'info': return 'text-blue-600';
-      default: return 'text-gray-600';
+    if (user?.id) {
+      loadData();
     }
+  }, [user?.id]);
+
+  // 날짜 포맷팅
+  const formatDateTime = (dateTimeString: string) => {
+    return new Date(dateTimeString).toLocaleString('ko-KR', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'success': return '✅';
-      case 'warning': return '📅';
-      case 'error': return '❌';
-      case 'info': return 'ℹ️';
-      default: return '📢';
-    }
+  // 상태별 스타일
+  const getStatusStyle = (statusName: string) => {
+    const styles = {
+      'PENDING': 'bg-yellow-900/30 text-yellow-200',
+      'RESCHEDULE_REQUEST': 'bg-orange-900/30 text-orange-200',
+      'CONFIRMED': 'bg-green-900/30 text-green-200',
+      'CANCELLED': 'bg-red-900/30 text-red-200',
+    };
+    return styles[statusName as keyof typeof styles] || 'bg-gray-800/60 backdrop-blur-sm text-gray-300';
   };
 
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  if (loading) {
+    return (
+      <AuthGuard user={user}>
+        <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+            <p className="mt-4 text-gray-400">알림을 불러오는 중...</p>
+          </div>
+        </div>
+      </AuthGuard>
+    );
+  }
 
   return (
     <AuthGuard user={user}>
-      <div className="min-h-screen bg-gray-900 pb-20">
-      {/* IPTV 헤더 */}
-      <div className="bg-blue-900 text-white p-4">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center space-x-4">
-            <Link href="/" className="text-blue-200 hover:text-white">
-              ← 홈으로 돌아가기
-            </Link>
-            <div>
-              <h1 className="text-2xl font-bold text-blue-400">프랜차이즈TV</h1>
-              <p className="text-sm text-blue-200">성공 창업의 시작</p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-4 text-sm">
-            <span>21:36</span>
-            <span>Ch.887</span>
-            <div className="w-6 h-6 bg-blue-600 rounded"></div>
-          </div>
-        </div>
-      </div>
-
-      {/* 메인 콘텐츠 */}
-      <div className="p-6">
-        <div className="bg-white rounded-lg p-6">
+      <div className="min-h-screen bg-slate-950 pb-20">
+        <div className="max-w-4xl mx-auto px-4 py-8">
           {/* 헤더 */}
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">알림</h2>
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-red-600 font-medium">읽지 않음: {unreadCount}건</span>
-                <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+          <div className="mb-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-white mb-2">알림</h1>
+                <p className="text-gray-300">상담 관련 알림을 확인하세요.</p>
               </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-blue-600 font-medium">전체: {notifications.length}건</span>
-                <button 
-                  onClick={handleMarkAllAsRead}
-                  className="w-4 h-4 text-blue-600 hover:text-blue-700"
-                >
-                  🔄
-                </button>
-              </div>
+              {unreadCount > 0 && (
+                <div className="bg-red-500 text-white text-sm font-medium px-3 py-1 rounded-full">
+                  {unreadCount}개의 새 알림
+                </div>
+              )}
             </div>
           </div>
 
-          {loading ? (
-            <div className="text-center py-12">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              <p className="mt-2 text-gray-600">알림 목록을 불러오는 중...</p>
-            </div>
-          ) : notifications.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-4xl">🔔</span>
+          {/* 알림 목록 */}
+          <div className="space-y-4">
+            {notifications.length === 0 ? (
+              <div className="bg-gray-900/60 backdrop-blur-md border border-gray-700/30 shadow-xl rounded-lg p-8 text-center">
+                <div className="text-gray-500 mb-4">
+                  <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-5 5v-5z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 3v12h6V3a3 3 0 00-3-3H9z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-medium text-white mb-2">알림이 없습니다</h3>
+                <p className="text-gray-400">새로운 알림이 있으면 여기에 표시됩니다.</p>
               </div>
-              <p className="text-gray-600 mb-4">새로운 알림이 없습니다.</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {notifications.map((notification) => (
-                <div
-                  key={notification.id}
-                  className={`rounded-lg p-4 transition-colors ${
+            ) : (
+              notifications.map((notification) => (
+                <div 
+                  key={notification.notificationId} 
+                  className={`rounded-lg border p-6 cursor-pointer transition-colors ${
                     notification.isRead 
-                      ? 'bg-gray-50' 
-                      : 'bg-blue-50 border-l-4 border-blue-500'
+                      ? 'bg-gray-900 border-gray-800 hover:bg-gray-800' 
+                      : 'bg-blue-900/30 border-blue-700 hover:bg-blue-900/40'
                   }`}
+                  onClick={() => !notification.isRead && markAsRead(notification.notificationId)}
                 >
-                  <div className="flex items-start space-x-4">
-                    {/* 상태 아이콘 */}
-                    <div className="flex-shrink-0">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                        notification.isRead ? 'bg-gray-200' : 'bg-blue-100'
-                      }`}>
-                        <span className="text-lg">{getTypeIcon(notification.type)}</span>
-                      </div>
-                    </div>
-
-                    {/* 브랜드 아이콘 */}
-                    <div className="flex-shrink-0">
-                      <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                        <span className="text-white text-lg">{notification.brandIcon}</span>
-                      </div>
-                    </div>
-
-                    {/* 알림 내용 */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h3 className={`text-sm font-medium ${
-                            notification.isRead ? 'text-gray-700' : 'text-gray-900'
-                          }`}>
-                            {notification.title}
-                          </h3>
-                          {notification.message && (
-                            <p className="text-sm text-gray-600 mt-1">
-                              {notification.message}
-                            </p>
-                          )}
-                          <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
-                            <span>{notification.createdAt}</span>
-                            <span className={getTypeColor(notification.type)}>
-                              {notification.timeAgo}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* 읽지 않음 표시 */}
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
                         {!notification.isRead && (
-                          <div className="flex-shrink-0">
-                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                          </div>
+                          <span className="w-2 h-2 bg-blue-600 rounded-full"></span>
+                        )}
+                        <span className="text-sm text-gray-400">
+                          {notification.brandName || notification.userName || '알림'}
+                        </span>
+                        {notification.statusName && (
+                          <span className={`text-xs px-2 py-1 rounded ${getStatusStyle(notification.statusName)}`}>
+                            {notification.statusName === 'PENDING' ? '신청 중' :
+                             notification.statusName === 'RESCHEDULE_REQUEST' ? '일정 조정 중' :
+                             notification.statusName === 'CONFIRMED' ? '확정' :
+                             notification.statusName === 'CANCELLED' ? '취소' :
+                             notification.statusName}
+                          </span>
                         )}
                       </div>
+                      
+                      <p className={`text-sm ${notification.isRead ? 'text-gray-300' : 'text-white font-medium'}`}>
+                        {notification.message}
+                      </p>
                     </div>
-
-                    {/* 액션 버튼 */}
-                    <div className="flex-shrink-0">
-                      {!notification.isRead && (
-                        <button
-                          onClick={() => handleMarkAsRead(notification.id)}
-                          className="text-sm text-blue-600 hover:text-blue-700"
-                        >
-                          읽음
-                        </button>
-                      )}
-                    </div>
+                    
+                    <span className="text-xs text-gray-500 ml-4">
+                      {formatDateTime(notification.createdAt)}
+                    </span>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
+              ))
+            )}
+          </div>
         </div>
       </div>
-    </div>
     </AuthGuard>
   );
 }

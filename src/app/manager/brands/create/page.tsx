@@ -135,9 +135,9 @@ export default function CreateBrandPage() {
 
   if (!user || user.role !== 'MANAGER') {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12">
+      <div className="min-h-screen bg-slate-950 flex flex-col justify-center py-12">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">
+          <h1 className="text-2xl font-bold text-white mb-4">
             접근 권한이 없습니다
           </h1>
           <p className="text-gray-600 mb-4">
@@ -155,12 +155,12 @@ export default function CreateBrandPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-slate-950 py-8">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              <h1 className="text-3xl font-bold text-white mb-2">
                 브랜드 추가
               </h1>
               <p className="text-gray-600">
@@ -169,7 +169,7 @@ export default function CreateBrandPage() {
             </div>
             <Link
               href="/manager"
-              className="text-gray-600 hover:text-gray-900 font-medium"
+              className="text-gray-600 hover:text-white font-medium"
             >
               ← 돌아가기
             </Link>
@@ -182,12 +182,12 @@ export default function CreateBrandPage() {
           </div>
         )}
 
-        <div className="bg-white shadow rounded-lg">
+        <div className="bg-gray-900/60 backdrop-blur-md border border-gray-700/30 shadow-xl shadow rounded-lg">
           <div className="px-6 py-6">
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* 브랜드명 */}
               <div>
-                <label htmlFor="brandName" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="brandName" className="block text-sm font-medium text-gray-300 mb-2">
                   브랜드명 <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -196,7 +196,7 @@ export default function CreateBrandPage() {
                   name="brandName"
                   value={formData.brandName}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-600 bg-gray-800 text-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   placeholder="브랜드명을 입력하세요"
                   maxLength={200}
                   required
@@ -205,7 +205,7 @@ export default function CreateBrandPage() {
 
               {/* 카테고리 */}
               <div>
-                <label htmlFor="categoryId" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="categoryId" className="block text-sm font-medium text-gray-300 mb-2">
                   카테고리 <span className="text-red-500">*</span>
                 </label>
                 <select
@@ -213,7 +213,7 @@ export default function CreateBrandPage() {
                   name="categoryId"
                   value={formData.categoryId}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-600 bg-gray-800 text-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   required
                 >
                   <option value={0}>카테고리를 선택하세요</option>
@@ -227,7 +227,7 @@ export default function CreateBrandPage() {
 
               {/* 가맹비 */}
               <div>
-                <label htmlFor="initialCost" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="initialCost" className="block text-sm font-medium text-gray-300 mb-2">
                   가맹비 (원) <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -236,7 +236,7 @@ export default function CreateBrandPage() {
                   name="initialCost"
                   value={formData.initialCost}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-600 bg-gray-800 text-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   placeholder="1,000,000"
                   required
                 />
@@ -245,7 +245,7 @@ export default function CreateBrandPage() {
 
               {/* 총 창업비용 */}
               <div>
-                <label htmlFor="totalInvestment" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="totalInvestment" className="block text-sm font-medium text-gray-300 mb-2">
                   총 창업비용 (원) <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -254,7 +254,7 @@ export default function CreateBrandPage() {
                   name="totalInvestment"
                   value={formData.totalInvestment}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-600 bg-gray-800 text-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   placeholder="5,000,000"
                   required
                 />
@@ -263,7 +263,7 @@ export default function CreateBrandPage() {
 
               {/* 평균 월매출 */}
               <div>
-                <label htmlFor="avgMonthlyRevenue" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="avgMonthlyRevenue" className="block text-sm font-medium text-gray-300 mb-2">
                   평균 월매출 (원) <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -272,7 +272,7 @@ export default function CreateBrandPage() {
                   name="avgMonthlyRevenue"
                   value={formData.avgMonthlyRevenue}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-600 bg-gray-800 text-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   placeholder="2,000,000"
                   required
                 />
@@ -281,7 +281,7 @@ export default function CreateBrandPage() {
 
               {/* 매장수 */}
               <div>
-                <label htmlFor="storeCount" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="storeCount" className="block text-sm font-medium text-gray-300 mb-2">
                   매장수 <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -290,7 +290,7 @@ export default function CreateBrandPage() {
                   name="storeCount"
                   value={formData.storeCount}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-600 bg-gray-800 text-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   placeholder="0"
                   min="1"
                   required
@@ -299,7 +299,7 @@ export default function CreateBrandPage() {
 
               {/* 브랜드 설명 */}
               <div>
-                <label htmlFor="brandDescription" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="brandDescription" className="block text-sm font-medium text-gray-300 mb-2">
                   브랜드 설명
                 </label>
                 <textarea
@@ -308,7 +308,7 @@ export default function CreateBrandPage() {
                   value={formData.brandDescription}
                   onChange={handleChange}
                   rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-600 bg-gray-800 text-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   placeholder="브랜드에 대한 설명을 입력하세요"
                   maxLength={200}
                 />
@@ -321,14 +321,14 @@ export default function CreateBrandPage() {
               <div className="flex justify-end space-x-3 pt-4">
                 <Link
                   href="/manager"
-                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  className="px-4 py-2 border border-gray-600 bg-gray-800 text-white rounded-md text-sm font-medium text-gray-300 hover:bg-slate-950 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
                   취소
                 </Link>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-md text-sm font-medium hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? '등록 중...' : '브랜드 등록'}
                 </button>

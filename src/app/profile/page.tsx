@@ -9,9 +9,9 @@ export default function ProfilePage() {
 
   return (
     <AuthGuard user={user}>
-    <div className="min-h-screen bg-gray-900 pb-20">
+    <div className="min-h-screen bg-slate-950 pb-20">
       {/* IPTV 헤더 */}
-      <div className="bg-blue-900 text-white p-4">
+      <div className="bg-slate-900/95 backdrop-blur-sm text-white p-4">
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-4">
             <Link href="/" className="text-blue-200 hover:text-white">
@@ -32,8 +32,8 @@ export default function ProfilePage() {
 
       {/* 메인 콘텐츠 */}
       <div className="p-6">
-        <div className="bg-white rounded-lg p-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">내 정보</h2>
+        <div className="bg-gray-900/60 backdrop-blur-md border border-gray-700/30 shadow-xl rounded-lg p-6">
+          <h2 className="text-2xl font-bold text-white mb-6">내 정보</h2>
           
           <div className="space-y-4">
             <div className="flex items-center space-x-4">
@@ -43,33 +43,33 @@ export default function ProfilePage() {
                 </span>
               </div>
               <div>
-                <h3 className="text-xl font-semibold text-gray-900">{user?.name || '사용자'}</h3>
-                <p className="text-gray-600">{user?.email || '이메일 없음'}</p>
-                <span className="inline-block px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full mt-1">
+                <h3 className="text-xl font-semibold text-white">{user?.name || '사용자'}</h3>
+                <p className="text-gray-300">{user?.email || '이메일 없음'}</p>
+                <span className="inline-block px-2 py-1 text-xs font-medium bg-blue-900 text-blue-200 rounded-full mt-1">
                   {user?.role === 'MANAGER' ? '브랜드 매니저' : '일반 사용자'}
                 </span>
               </div>
             </div>
 
-            <div className="border-t border-gray-200 pt-4">
+            <div className="border-t border-gray-700 pt-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-400 mb-1">
                     이름
                   </label>
-                  <p className="text-gray-900">{user?.name || '이름 없음'}</p>
+                  <p className="text-white">{user?.name || '이름 없음'}</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-400 mb-1">
                     이메일
                   </label>
-                  <p className="text-gray-900">{user?.email || '이메일 없음'}</p>
+                  <p className="text-white">{user?.email || '이메일 없음'}</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-400 mb-1">
                     회원 유형
                   </label>
-                  <p className="text-gray-900">
+                  <p className="text-white">
                     {user?.role === 'MANAGER' ? '브랜드 매니저' : '일반 사용자'}
                   </p>
                 </div>
@@ -77,7 +77,7 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            <div className="border-t border-gray-200 pt-4">
+            <div className="border-t border-gray-700 pt-4">
               <div className="flex space-x-3">
                 <button
                   onClick={logout}

@@ -69,17 +69,23 @@ export default function ManagerPage() {
 
   if (!user || user.role !== 'MANAGER') {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            접근 권한이 없습니다
-          </h1>
-          <p className="text-gray-600 mb-4">
-            브랜드 매니저만 접근할 수 있는 페이지입니다.
-          </p>
+      <div className="min-h-screen bg-slate-950 flex flex-col justify-center py-12">
+        <div className="text-center px-4">
+          <div className="mb-8">
+            <div className="w-16 h-16 bg-gradient-to-r from-red-600 to-orange-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-white text-2xl">⚠️</span>
+            </div>
+            <h1 className="text-3xl font-bold text-white mb-4">
+              접근 권한이 없습니다
+            </h1>
+            <p className="text-gray-400 mb-8 max-w-md mx-auto">
+              브랜드 매니저만 접근할 수 있는 페이지입니다.<br/>
+              매니저 계정으로 로그인해주세요.
+            </p>
+          </div>
           <Link 
             href="/login" 
-            className="text-blue-600 hover:text-blue-500 font-medium"
+            className="inline-block bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-3 rounded-lg font-medium hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 transform hover:scale-105 shadow-lg"
           >
             로그인 페이지로 이동
           </Link>
@@ -90,20 +96,20 @@ export default function ManagerPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">로딩 중...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500 mx-auto mb-4"></div>
+          <p className="text-gray-400">로딩 중...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-slate-950 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <h1 className="text-3xl font-bold text-white mb-2">
             내 브랜드 관리
           </h1>
           <p className="text-gray-600">
@@ -117,10 +123,10 @@ export default function ManagerPage() {
           </div>
         )}
 
-        <div className="bg-white shadow rounded-lg">
+        <div className="bg-gray-900/60 backdrop-blur-md border border-gray-700/30 shadow-xl shadow rounded-lg">
           <div className="px-6 py-4 border-b border-gray-200">
             <div className="flex justify-between items-center">
-              <h2 className="text-lg font-medium text-gray-900">
+              <h2 className="text-lg font-medium text-white">
                 관리 브랜드 ({managedBrands.length}개)
               </h2>
               <Link
@@ -139,7 +145,7 @@ export default function ManagerPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                 </svg>
               </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
+              <h3 className="text-lg font-medium text-white mb-2">
                 아직 관리하는 브랜드가 없습니다
               </h3>
               <p className="text-gray-500 mb-4">
@@ -155,11 +161,11 @@ export default function ManagerPage() {
           ) : (
             <div className="divide-y divide-gray-200">
               {managedBrands.map((brand) => (
-                <div key={brand.brandId} className="px-6 py-4 hover:bg-gray-50">
+                <div key={brand.brandId} className="px-6 py-4 hover:bg-slate-950">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <div className="flex items-center space-x-3">
-                        <h3 className="text-lg font-medium text-gray-900">
+                        <h3 className="text-lg font-medium text-white">
                           {brand.brandName}
                         </h3>
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
