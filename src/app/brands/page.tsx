@@ -6,6 +6,7 @@ import { publicBrandAPI, userBrandAPI, managerBrandAPI } from '@/lib/api';
 import { Brand, BrandCategory } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import AuthGuard from '@/components/AuthGuard';
+import BrandCategoryChart from '@/components/BrandCategoryChart';
 
 export default function BrandsPage() {
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -221,6 +222,9 @@ export default function BrandsPage() {
               </div>
             </div>
           )}
+
+          {/* 카테고리별 브랜드 통계 차트 */}
+          <BrandCategoryChart />
 
           {/* 카테고리 선택 */}
           <div className="bg-gray-900/60 backdrop-blur-md border border-gray-700/30 shadow-xl rounded-lg p-6 mb-6">
